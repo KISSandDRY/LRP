@@ -20,10 +20,14 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [vRes, cRes] = await Promise.all([getVehicles(), getCargo()]);
+      const [vRes, cRes, rRes] = await Promise.all([getVehicles(), getCargo(), getRoutes()]);
       setVehicles(vRes.data);
       setCargos(cRes.data);
-
+      
+      // If we got routes from backend, restore them
+      if (rRes.data && rRes.data.length > 0) {
+          setRoutes(rRes.data);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to fetch initial data.");

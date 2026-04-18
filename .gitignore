@@ -17,6 +17,9 @@ node_modules/
 backend/target/
 frontend/dist/
 frontend/build/
+dist
+dist-ssr
+*.local
 
 # Spring Boot
 .mvn/wrapper/maven-wrapper.jar

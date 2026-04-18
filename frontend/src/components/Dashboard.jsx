@@ -55,6 +55,9 @@ const Dashboard = () => {
 
   const isOptimizationDisabled = loading || cargos.length === 0 || vehicles.length === 0;
 
+  const totalSystemCost = routes.reduce((acc, route) => acc + route.totalCost, 0);
+  const totalSystemFuel = routes.reduce((acc, route) => acc + route.estimatedFuelUsage, 0);
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-5">
@@ -192,6 +195,13 @@ const Dashboard = () => {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="table-group-divider border-top border-success">
+                <tr className="bg-success bg-opacity-10">
+                  <td colSpan="3" className="text-end fw-bold text-success pe-4">SYSTEM TOTAL INCURRED:</td>
+                  <td className="text-success fw-bold fs-5">${totalSystemCost.toFixed(2)}</td>
+                  <td className="text-light fw-bold">{totalSystemFuel.toFixed(2)} Liters</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>

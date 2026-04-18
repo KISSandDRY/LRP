@@ -52,8 +52,8 @@ class LogisticsOptimizationServiceTest {
         c1.setDestinationDistance(100);
         c1.setStatus(CargoStatus.PENDING);
 
-        when(vehicleRepository.findByStatus(VehicleStatus.AVAILABLE)).thenReturn(List.of(t1));
-        when(cargoRepository.findByStatus(CargoStatus.PENDING)).thenReturn(List.of(c1));
+        when(vehicleRepository.findAll()).thenReturn(List.of(t1));
+        when(cargoRepository.findAll()).thenReturn(List.of(c1));
 
         List<Route> routes = optimizationService.optimizeAndAssign(1.0);
 
@@ -77,8 +77,8 @@ class LogisticsOptimizationServiceTest {
         c1.setWeight(500); // 500 weight
         c1.setStatus(CargoStatus.PENDING);
 
-        when(vehicleRepository.findByStatus(VehicleStatus.AVAILABLE)).thenReturn(List.of(t1));
-        when(cargoRepository.findByStatus(CargoStatus.PENDING)).thenReturn(List.of(c1));
+        when(vehicleRepository.findAll()).thenReturn(List.of(t1));
+        when(cargoRepository.findAll()).thenReturn(List.of(c1));
 
         assertThrows(OverweightException.class, () -> optimizationService.optimizeAndAssign(1.0));
     }
@@ -95,8 +95,8 @@ class LogisticsOptimizationServiceTest {
         pc1.setRequiredTemperature(-5.0);
         pc1.setStatus(CargoStatus.PENDING);
 
-        when(vehicleRepository.findByStatus(VehicleStatus.AVAILABLE)).thenReturn(List.of(t1));
-        when(cargoRepository.findByStatus(CargoStatus.PENDING)).thenReturn(List.of(pc1));
+        when(vehicleRepository.findAll()).thenReturn(List.of(t1));
+        when(cargoRepository.findAll()).thenReturn(List.of(pc1));
 
         assertThrows(IncompatibleCargoException.class, () -> optimizationService.optimizeAndAssign(1.0));
     }
@@ -117,8 +117,8 @@ class LogisticsOptimizationServiceTest {
         pc1.setDestinationDistance(100);
         pc1.setStatus(CargoStatus.PENDING);
 
-        when(vehicleRepository.findByStatus(VehicleStatus.AVAILABLE)).thenReturn(List.of(rv1));
-        when(cargoRepository.findByStatus(CargoStatus.PENDING)).thenReturn(List.of(pc1));
+        when(vehicleRepository.findAll()).thenReturn(List.of(rv1));
+        when(cargoRepository.findAll()).thenReturn(List.of(pc1));
 
         List<Route> routes = optimizationService.optimizeAndAssign(1.0);
 

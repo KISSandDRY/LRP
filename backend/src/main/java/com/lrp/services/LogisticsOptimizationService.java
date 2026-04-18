@@ -37,8 +37,14 @@ public class LogisticsOptimizationService {
 
     @Transactional
     public List<Route> optimizeAndAssign(double fuelPrice) {
-        List<Vehicle> availableVehicles = vehicleRepository.findByStatus(VehicleStatus.AVAILABLE);
-        List<Cargo> pendingCargos = cargoRepository.findByStatus(CargoStatus.PENDING);
+        // Automatically drop old simulated routes for pure interactive rebuilding
+        routeRepository.deleteAll();
+        
+        List<Vehicle> availableVehicles = vehicleRepository.findAll();
+        for (Vehicle v : availableVehicles) v.setStatus(VehicleStatus.AVAILABLE);
+        
+        List<Cargo> pendingCargos = cargoRepository.findAll();
+        for (Cargo c : pendingCargos) c.setStatus(CargoStatus.PENDING);
 
         if (pendingCargos.isEmpty()) {
             logger.info("No pending cargo to assign.");

@@ -9,14 +9,21 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [fuelPrice, setFuelPrice] = useState(1.50);
 
+  useEffect(() => {
+    if (routes.length === 0 || !fuelPrice) return;
+    const bounce = setTimeout(() => {
+      handleRunOptimization();
+    }, 100);
+    return () => clearTimeout(bounce);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fuelPrice]);
+
   const fetchData = async () => {
     try {
-      const [vRes, cRes, rRes] = await Promise.all([getVehicles(), getCargo(), getRoutes()]);
+      const [vRes, cRes] = await Promise.all([getVehicles(), getCargo()]);
       setVehicles(vRes.data);
       setCargos(cRes.data);
-      if (rRes.data && rRes.data.length > 0) {
-        setRoutes(rRes.data);
-      }
+
     } catch (err) {
       console.error(err);
       setError("Failed to fetch initial data.");
@@ -46,9 +53,7 @@ const Dashboard = () => {
     }
   };
 
-  const pendingCargosCount = cargos.filter(c => c.status === 'PENDING').length;
-  const availableVehiclesCount = vehicles.filter(v => v.status === 'AVAILABLE').length;
-  const isOptimizationDisabled = loading || pendingCargosCount === 0 || availableVehiclesCount === 0;
+  const isOptimizationDisabled = loading || cargos.length === 0 || vehicles.length === 0;
 
   return (
     <div>
@@ -82,7 +87,7 @@ const Dashboard = () => {
                  Optimizing Data...
                </>
             ) : (
-              'Run Auto Algorithm'
+              'BUILD ROUTES'
             )}
           </button>
         </div>

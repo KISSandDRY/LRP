@@ -128,10 +128,15 @@ public class LogisticsOptimizationService {
                     route.setCargo(c);
                     route.setAssignedWeight(assignedWeight);
                     
-                    // base cost without BigM scaling
-                    double realCost = (v.getFuelConsumptionPer100km() / 100.0) * c.getDestinationDistance() * fuelPrice;
-                    route.setTotalCost(realCost * assignedWeight);
-                    route.setEstimatedFuelUsage((v.getFuelConsumptionPer100km() / 100.0) * c.getDestinationDistance());
+                    // Amortize the trip cost over vehicle capacity to get cost-per-kg
+                    double rawTripCost = (v.getFuelConsumptionPer100km() / 100.0) * c.getDestinationDistance() * fuelPrice;
+                    double costPerKg = rawTripCost / v.getCapacityWeight();
+                    
+                    route.setTotalCost(costPerKg * assignedWeight);
+                    
+                    // Fuel usage is also proportionally allocated based on weight fraction
+                    double totalTripFuel = (v.getFuelConsumptionPer100km() / 100.0) * c.getDestinationDistance();
+                    route.setEstimatedFuelUsage(totalTripFuel * (assignedWeight / v.getCapacityWeight()));
 
                     generatedRoutes.add(routeRepository.save(route));
 
@@ -161,8 +166,8 @@ public class LogisticsOptimizationService {
                 return BIG_M;
             }
         }
-        
-        // Base cost factor based on fuel and distance. We multiply by 1 to represent per-kg cost
-        return (vehicle.getFuelConsumptionPer100km() / 100.0) * cargo.getDestinationDistance() * fuelPrice;
+        // Calculate proportional cost per kg of vehicle capacity
+        double rawTripCost = (vehicle.getFuelConsumptionPer100km() / 100.0) * cargo.getDestinationDistance() * fuelPrice;
+        return rawTripCost / vehicle.getCapacityWeight();
     }
 }

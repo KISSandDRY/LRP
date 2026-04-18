@@ -109,6 +109,7 @@ const Dashboard = () => {
                     <th>Type</th>
                     <th>Subclass</th>
                     <th>Capacity</th>
+                    <th>Fuel Rate</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -124,10 +125,11 @@ const Dashboard = () => {
                         ) : 'Unknown'}
                       </td>
                       <td>{v.capacityWeight} kg</td>
+                      <td><span className="text-info">{v.fuelConsumptionPer100km} L/100km</span></td>
                       <td><span className={`badge bg-${v.status}`}>{v.status.replace('_', ' ')}</span></td>
                     </tr>
                   ))}
-                  {vehicles.length === 0 && <tr><td colSpan="4" className="text-center py-4 text-muted">No vehicles present in the database.</td></tr>}
+                  {vehicles.length === 0 && <tr><td colSpan="5" className="text-center py-4 text-muted">No vehicles present in the database.</td></tr>}
                 </tbody>
               </table>
             </div>

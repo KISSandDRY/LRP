@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getVehicles, getCargo, runOptimization, getRoutes } from '../services/api';
+import { getVehicles, getCargo, runOptimization, getRoutes, deleteVehicle, deleteCargo } from '../services/api';
 
 const Dashboard = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -59,6 +59,26 @@ const Dashboard = () => {
 
   const isOptimizationDisabled = loading || cargos.length === 0 || vehicles.length === 0;
 
+  const handleDeleteVehicle = async (id) => {
+    try {
+      await deleteVehicle(id);
+      fetchData(); // Refresh UI + routes after delete wipe backend
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete vehicle.");
+    }
+  };
+
+  const handleDeleteCargo = async (id) => {
+    try {
+      await deleteCargo(id);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete cargo.");
+    }
+  };
+
   const totalSystemCost = routes.reduce((acc, route) => acc + route.totalCost, 0);
   const totalSystemFuel = routes.reduce((acc, route) => acc + route.estimatedFuelUsage, 0);
 
@@ -115,6 +135,7 @@ const Dashboard = () => {
                     <th>Capacity</th>
                     <th>Fuel Rate</th>
                     <th>Status</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -131,9 +152,12 @@ const Dashboard = () => {
                       <td>{v.capacityWeight} kg</td>
                       <td><span className="text-info">{v.fuelConsumptionPer100km} L/100km</span></td>
                       <td><span className={`badge bg-${v.status}`}>{v.status.replace('_', ' ')}</span></td>
+                      <td className="text-end">
+                        <button className="btn btn-sm btn-outline-danger shadow-sm py-0" onClick={() => handleDeleteVehicle(v.id)}>🗑️</button>
+                      </td>
                     </tr>
                   ))}
-                  {vehicles.length === 0 && <tr><td colSpan="5" className="text-center py-4 text-muted">No vehicles present in the database.</td></tr>}
+                  {vehicles.length === 0 && <tr><td colSpan="6" className="text-center py-4 text-muted">No vehicles present in the database.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -152,6 +176,7 @@ const Dashboard = () => {
                     <th>Weight</th>
                     <th>Distance</th>
                     <th>Status</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -166,9 +191,12 @@ const Dashboard = () => {
                       <td>{c.weight} kg</td>
                       <td>{c.destinationDistance} km</td>
                       <td><span className={`badge bg-${c.status}`}>{c.status}</span></td>
+                      <td className="text-end">
+                        <button className="btn btn-sm btn-outline-danger shadow-sm py-0" onClick={() => handleDeleteCargo(c.id)}>🗑️</button>
+                      </td>
                     </tr>
                   ))}
-                  {cargos.length === 0 && <tr><td colSpan="5" className="text-center py-4 text-muted">No cargo orders mapped.</td></tr>}
+                  {cargos.length === 0 && <tr><td colSpan="6" className="text-center py-4 text-muted">No cargo orders mapped.</td></tr>}
                 </tbody>
               </table>
             </div>

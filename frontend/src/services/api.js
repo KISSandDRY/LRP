@@ -11,9 +11,11 @@ const api = axios.create({
 
 export const getVehicles = () => api.get('/vehicles');
 export const addVehicle = (vehicle) => api.post('/vehicles', vehicle);
+export const deleteVehicle = (id) => api.delete(`/vehicles/${id}`);
 
 export const getCargo = () => api.get('/cargo');
 export const addCargo = (cargo) => api.post('/cargo', cargo);
+export const deleteCargo = (id) => api.delete(`/cargo/${id}`);
 
 export const getRoutes = () => api.get('/routes');
 

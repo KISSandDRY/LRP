@@ -25,4 +25,9 @@ public class CargoController {
     public Cargo addCargo(@RequestBody Cargo cargo) {
         return cargoService.addCargo(cargo);
     }
+
+    @DeleteMapping("/{id}")
+    public void deleteCargo(@PathVariable Long id) {
+        cargoService.deleteCargo(id);
+    }
 }

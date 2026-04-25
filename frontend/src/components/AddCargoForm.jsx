@@ -8,7 +8,11 @@ const AddCargoForm = () => {
   const [formData, setFormData] = useState({
     weight: '',
     destinationDistance: '',
-    requiredTemperature: ''
+    requiredTemperature: '',
+    hazmatCode: '',
+    maxGForce: '',
+    viscosity: '',
+    declaredValue: ''
   });
 
   const handleSubmit = async (e) => {
@@ -23,6 +27,14 @@ const AddCargoForm = () => {
 
       if (type === 'PerishableCargo') {
         payload.requiredTemperature = parseFloat(formData.requiredTemperature);
+      } else if (type === 'HazardousCargo') {
+        payload.hazmatCode = formData.hazmatCode;
+      } else if (type === 'FragileCargo') {
+        payload.maxGForce = parseFloat(formData.maxGForce);
+      } else if (type === 'LiquidCargo') {
+        payload.viscosity = parseFloat(formData.viscosity);
+      } else if (type === 'ValuableCargo') {
+        payload.declaredValue = parseFloat(formData.declaredValue);
       }
 
       await addCargo(payload);
@@ -44,6 +56,10 @@ const AddCargoForm = () => {
               <select className="form-select" value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="StandardCargo">Standard Cargo</option>
                 <option value="PerishableCargo">Perishable Cargo</option>
+                <option value="HazardousCargo">Hazardous Cargo</option>
+                <option value="FragileCargo">Fragile Cargo</option>
+                <option value="LiquidCargo">Liquid Cargo</option>
+                <option value="ValuableCargo">Valuable Cargo</option>
               </select>
             </div>
 
@@ -64,6 +80,38 @@ const AddCargoForm = () => {
                 <label className="form-label">Required Max Temperature (°C)</label>
                 <input type="number" step="0.1" className="form-control" required
                   value={formData.requiredTemperature} onChange={e => setFormData({...formData, requiredTemperature: e.target.value})} />
+              </div>
+            )}
+            
+            {type === 'HazardousCargo' && (
+              <div className="mb-4">
+                <label className="form-label">Hazmat Certification Code</label>
+                <input type="text" className="form-control" required
+                  value={formData.hazmatCode} onChange={e => setFormData({...formData, hazmatCode: e.target.value})} />
+              </div>
+            )}
+            
+            {type === 'FragileCargo' && (
+              <div className="mb-4">
+                <label className="form-label">Max Allowed G-Force</label>
+                <input type="number" step="0.1" className="form-control" required
+                  value={formData.maxGForce} onChange={e => setFormData({...formData, maxGForce: e.target.value})} />
+              </div>
+            )}
+            
+            {type === 'LiquidCargo' && (
+              <div className="mb-4">
+                <label className="form-label">Kinematic Viscosity (cSt)</label>
+                <input type="number" step="0.1" className="form-control" required
+                  value={formData.viscosity} onChange={e => setFormData({...formData, viscosity: e.target.value})} />
+              </div>
+            )}
+            
+            {type === 'ValuableCargo' && (
+              <div className="mb-4">
+                <label className="form-label">Declared Item Value ($USD)</label>
+                <input type="number" step="0.01" className="form-control" required
+                  value={formData.declaredValue} onChange={e => setFormData({...formData, declaredValue: e.target.value})} />
               </div>
             )}
 

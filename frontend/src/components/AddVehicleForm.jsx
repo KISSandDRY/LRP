@@ -9,7 +9,10 @@ const AddVehicleForm = () => {
     capacityWeight: '',
     fuelConsumptionPer100km: '',
     maxAxleLoad: '',
-    minTemperature: ''
+    minTemperature: '',
+    securityLevel: 5,
+    hasBaffles: true,
+    shockAbsorptionRating: 10.0
   });
 
   const handleSubmit = async (e) => {
@@ -24,8 +27,14 @@ const AddVehicleForm = () => {
 
       if (type === 'Truck') {
         payload.maxAxleLoad = parseFloat(formData.maxAxleLoad);
-      } else {
+      } else if (type === 'RefrigeratedVan') {
         payload.minTemperature = parseFloat(formData.minTemperature);
+      } else if (type === 'ArmoredTransport') {
+        payload.securityLevel = parseInt(formData.securityLevel);
+      } else if (type === 'TankerTruck') {
+        payload.hasBaffles = formData.hasBaffles === 'true' || formData.hasBaffles === true;
+      } else if (type === 'AirRideTruck') {
+        payload.shockAbsorptionRating = parseFloat(formData.shockAbsorptionRating);
       }
 
       await addVehicle(payload);
@@ -47,6 +56,10 @@ const AddVehicleForm = () => {
               <select className="form-select" value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="Truck">Standard Truck</option>
                 <option value="RefrigeratedVan">Refrigerated Van</option>
+                <option value="FlatbedTruck">Flatbed Truck</option>
+                <option value="ArmoredTransport">Armored Transport</option>
+                <option value="TankerTruck">Tanker Truck</option>
+                <option value="AirRideTruck">AirRide Truck</option>
               </select>
             </div>
 
@@ -75,6 +88,32 @@ const AddVehicleForm = () => {
                 <label className="form-label">Min Temperature (°C)</label>
                 <input type="number" step="0.1" className="form-control" required
                   value={formData.minTemperature} onChange={e => setFormData({...formData, minTemperature: e.target.value})} />
+              </div>
+            )}
+
+            {type === 'ArmoredTransport' && (
+              <div className="mb-4">
+                <label className="form-label">Security Tier Level</label>
+                <input type="number" step="1" className="form-control" required
+                  value={formData.securityLevel} onChange={e => setFormData({...formData, securityLevel: e.target.value})} />
+              </div>
+            )}
+            
+            {type === 'TankerTruck' && (
+              <div className="mb-4">
+                <label className="form-label">Internal Baffling Structure</label>
+                <select className="form-select" value={formData.hasBaffles} onChange={e => setFormData({...formData, hasBaffles: e.target.value})}>
+                  <option value={true}>Baffled (Anti-Slosh)</option>
+                  <option value={false}>Unbaffled</option>
+                </select>
+              </div>
+            )}
+            
+            {type === 'AirRideTruck' && (
+              <div className="mb-4">
+                <label className="form-label">Shock Absorption (G-Rating Limit)</label>
+                <input type="number" step="0.1" className="form-control" required
+                  value={formData.shockAbsorptionRating} onChange={e => setFormData({...formData, shockAbsorptionRating: e.target.value})} />
               </div>
             )}
 

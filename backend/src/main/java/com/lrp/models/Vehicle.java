@@ -9,7 +9,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = Truck.class, name = "Truck"),
-    @JsonSubTypes.Type(value = RefrigeratedVan.class, name = "RefrigeratedVan")
+    @JsonSubTypes.Type(value = RefrigeratedVan.class, name = "RefrigeratedVan"),
+    @JsonSubTypes.Type(value = FlatbedTruck.class, name = "FlatbedTruck"),
+    @JsonSubTypes.Type(value = ArmoredTransport.class, name = "ArmoredTransport"),
+    @JsonSubTypes.Type(value = TankerTruck.class, name = "TankerTruck"),
+    @JsonSubTypes.Type(value = AirRideTruck.class, name = "AirRideTruck")
 })
 public abstract class Vehicle {
     @Id

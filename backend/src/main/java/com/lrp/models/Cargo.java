@@ -9,7 +9,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = StandardCargo.class, name = "StandardCargo"),
-    @JsonSubTypes.Type(value = PerishableCargo.class, name = "PerishableCargo")
+    @JsonSubTypes.Type(value = PerishableCargo.class, name = "PerishableCargo"),
+    @JsonSubTypes.Type(value = HazardousCargo.class, name = "HazardousCargo"),
+    @JsonSubTypes.Type(value = FragileCargo.class, name = "FragileCargo"),
+    @JsonSubTypes.Type(value = LiquidCargo.class, name = "LiquidCargo"),
+    @JsonSubTypes.Type(value = ValuableCargo.class, name = "ValuableCargo")
 })
 public abstract class Cargo {
     @Id

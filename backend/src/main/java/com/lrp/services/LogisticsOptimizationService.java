@@ -6,10 +6,10 @@ import com.lrp.models.*;
 import com.lrp.repositories.CargoRepository;
 import com.lrp.repositories.RouteRepository;
 import com.lrp.repositories.VehicleRepository;
-import org.apache.commons.math3.optim.MaxIter;
-import org.apache.commons.math3.optim.PointValuePair;
-import org.apache.commons.math3.optim.linear.*;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.chocosolver.solver.Model;
+import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.variables.BoolVar;
+import org.chocosolver.solver.variables.IntVar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,9 +26,6 @@ public class LogisticsOptimizationService {
     private final CargoRepository cargoRepository;
     private final RouteRepository routeRepository;
 
-    private static final double BIG_M = 1_000_000_000.0;
-    private static final double EPSILON = 1e-6;
-
     public LogisticsOptimizationService(VehicleRepository vehicleRepository, CargoRepository cargoRepository, RouteRepository routeRepository) {
         this.vehicleRepository = vehicleRepository;
         this.cargoRepository = cargoRepository;
@@ -37,12 +34,11 @@ public class LogisticsOptimizationService {
 
     @Transactional
     public List<Route> optimizeAndAssign(double fuelPrice) {
-        // Automatically drop old simulated routes for pure interactive rebuilding
         routeRepository.deleteAll();
-        
+
         List<Vehicle> availableVehicles = vehicleRepository.findAll();
         for (Vehicle v : availableVehicles) v.setStatus(VehicleStatus.AVAILABLE);
-        
+
         List<Cargo> pendingCargos = cargoRepository.findAll();
         for (Cargo c : pendingCargos) c.setStatus(CargoStatus.PENDING);
 
@@ -55,96 +51,111 @@ public class LogisticsOptimizationService {
             throw new OverweightException("No available vehicles to transport cargo.");
         }
 
+        for (Cargo c : pendingCargos) {
+            boolean hasCompatible = false;
+            for (Vehicle v : availableVehicles) {
+                if (isCompatible(v, c)) {
+                    hasCompatible = true;
+                    break;
+                }
+            }
+            if (!hasCompatible) {
+                throw new IncompatibleCargoException("Required to assign cargo to incompatible vehicle due to lack of suitable resources.");
+            }
+        }
+
         int vCount = availableVehicles.size();
         int cCount = pendingCargos.size();
-        int numVariables = vCount * cCount;
 
-        double[] objectiveCoefficients = new double[numVariables];
-        
+        Model model = new Model("Logistics MILP Optimizer");
+
+        // x[i][j] = 1 if Cargo j is assigned to Vehicle i
+        BoolVar[][] x = model.boolVarMatrix("x", vCount, cCount);
+
+        // Constraint 1: Atomic Load - Each cargo must be completely assigned to EXACTLY one vehicle
+        for (int j = 0; j < cCount; j++) {
+            BoolVar[] columns = new BoolVar[vCount];
+            for (int i = 0; i < vCount; i++) {
+                columns[i] = x[i][j];
+            }
+            model.sum(columns, "=", 1).post();
+        }
+
+        // Constraint 2: Capacity Constraints
+        for (int i = 0; i < vCount; i++) {
+            int[] cargoWeights = new int[cCount];
+            for (int j = 0; j < cCount; j++) {
+                cargoWeights[j] = (int) Math.ceil(pendingCargos.get(j).getWeight()); // Choco needs integer coefficients
+            }
+            int maxCapacity = (int) Math.floor(availableVehicles.get(i).getCapacityWeight());
+            model.scalar(x[i], cargoWeights, "<=", maxCapacity).post();
+        }
+
+        // Constraint 3: Compatibility Constraints
         for (int i = 0; i < vCount; i++) {
             Vehicle vehicle = availableVehicles.get(i);
             for (int j = 0; j < cCount; j++) {
                 Cargo cargo = pendingCargos.get(j);
-                int varIndex = i * cCount + j;
 
-                double cost = calculateCost(vehicle, cargo, fuelPrice);
-                objectiveCoefficients[varIndex] = cost;
+                if (!isCompatible(vehicle, cargo)) {
+                    model.arithm(x[i][j], "=", 0).post(); // Force rejection
+                }
             }
         }
 
-        LinearObjectiveFunction objectiveFunction = new LinearObjectiveFunction(objectiveCoefficients, 0);
-        List<LinearConstraint> constraints = new ArrayList<>();
-
-        // Demand constraints: Each cargo j must be fully assigned
-        for (int j = 0; j < cCount; j++) {
-            double[] constraintCoeffs = new double[numVariables];
-            for (int i = 0; i < vCount; i++) {
-                constraintCoeffs[i * cCount + j] = 1.0;
-            }
-            constraints.add(new LinearConstraint(constraintCoeffs, Relationship.EQ, pendingCargos.get(j).getWeight()));
-        }
-
-        // Supply constraints: Each vehicle i cannot exceed its capacity
+        // Objective Function: Minimize Total System Cost
+        IntVar[] costTerms = new IntVar[vCount * cCount];
+        int termIdx = 0;
+        
         for (int i = 0; i < vCount; i++) {
-            double[] constraintCoeffs = new double[numVariables];
             for (int j = 0; j < cCount; j++) {
-                constraintCoeffs[i * cCount + j] = 1.0;
+                double rawCost = calculateTripCost(availableVehicles.get(i), pendingCargos.get(j), fuelPrice);
+                int scaledCost = (int) (rawCost * 100); // Scale float cost to integer for Choco solver
+                
+                IntVar term = model.intVar("cost_" + i + "_" + j, 0, IntVar.MAX_INT_BOUND / 2);
+                model.times(x[i][j], scaledCost, term).post();
+                costTerms[termIdx++] = term;
             }
-            constraints.add(new LinearConstraint(constraintCoeffs, Relationship.LEQ, availableVehicles.get(i).getCapacityWeight()));
         }
 
-        SimplexSolver solver = new SimplexSolver();
-        PointValuePair solution;
-        try {
-            solution = solver.optimize(
-                    new MaxIter(1000),
-                    objectiveFunction,
-                    new LinearConstraintSet(constraints),
-                    GoalType.MINIMIZE,
-                    new NonNegativeConstraint(true)
-            );
-        } catch (NoFeasibleSolutionException e) {
-            throw new OverweightException("Total cargo weight exceeds available vehicle capacity or cannot be distributed properly.");
+        // Sum objective
+        IntVar totalCostObj = model.intVar("totalCost", 0, IntVar.MAX_INT_BOUND / 2);
+        model.sum(costTerms, "=", totalCostObj).post();
+        
+        model.setObjective(Model.MINIMIZE, totalCostObj);
+
+        Solver solver = model.getSolver();
+        
+        if (!solver.solve()) { // If no feasible mathematical solution exists
+            throw new OverweightException("No feasible MILP solution: Total cargo limits exceed capacity or strict compatibility logic constraints failed.");
         }
 
-        double[] assignments = solution.getPoint();
         List<Route> generatedRoutes = new ArrayList<>();
 
         for (int i = 0; i < vCount; i++) {
             for (int j = 0; j < cCount; j++) {
-                int varIndex = i * cCount + j;
-                double assignedWeight = assignments[varIndex];
-
-                if (assignedWeight > EPSILON) { // If assigned
+                if (x[i][j].getValue() == 1) { // If assigned safely by MILP
                     Vehicle v = availableVehicles.get(i);
                     Cargo c = pendingCargos.get(j);
-                    
-                    if (objectiveCoefficients[varIndex] >= BIG_M) {
-                        throw new IncompatibleCargoException("Required to assign perishable cargo to incompatible vehicle due to lack of suitable resources.");
-                    }
 
                     Route route = new Route();
                     route.setVehicle(v);
                     route.setCargo(c);
-                    route.setAssignedWeight(assignedWeight);
-                    
-                    // Amortize the trip cost over vehicle capacity to get cost-per-kg
-                    double rawTripCost = (v.getFuelConsumptionPer100km() / 100.0) * c.getDestinationDistance() * fuelPrice;
-                    double costPerKg = rawTripCost / v.getCapacityWeight();
-                    
-                    route.setTotalCost(costPerKg * assignedWeight);
-                    
-                    // Fuel usage is also proportionally allocated based on weight fraction
+                    route.setAssignedWeight(c.getWeight()); // Now atomic, 100% weight transfers
+
+                    // Use the exact continuous real-world floats for UI processing
+                    double exactTotalTripCost = calculateTripCost(v, c, fuelPrice);
+                    route.setTotalCost((exactTotalTripCost / v.getCapacityWeight()) * c.getWeight()); // Allocate cost proportionally based on exact bin volume taken
+
                     double totalTripFuel = (v.getFuelConsumptionPer100km() / 100.0) * c.getDestinationDistance();
-                    route.setEstimatedFuelUsage(totalTripFuel * (assignedWeight / v.getCapacityWeight()));
+                    route.setEstimatedFuelUsage(totalTripFuel * (c.getWeight() / v.getCapacityWeight()));
 
                     generatedRoutes.add(routeRepository.save(route));
 
-                    logger.info("Successfully optimized route #{} (Vehicle {} assigned {} kg of Cargo {})", 
-                            route.getId(), v.getId(), assignedWeight, c.getId());
+                    logger.info("Successfully packed Cargo #{} into Vehicle #{} using Choco Solver MILP", c.getId(), v.getId());
 
                     c.setStatus(CargoStatus.ASSIGNED);
-                    v.setStatus(VehicleStatus.IN_TRANSIT); // Assuming it leaves immediately.
+                    v.setStatus(VehicleStatus.IN_TRANSIT);
                 }
             }
         }
@@ -155,19 +166,44 @@ public class LogisticsOptimizationService {
         return generatedRoutes;
     }
 
-    private double calculateCost(Vehicle vehicle, Cargo cargo, double fuelPrice) {
-        if (cargo instanceof PerishableCargo) {
-            PerishableCargo pc = (PerishableCargo) cargo;
-            if (!(vehicle instanceof RefrigeratedVan)) {
-                return BIG_M;
+    private boolean isCompatible(Vehicle vehicle, Cargo cargo) {
+        if (cargo instanceof PerishableCargo pc) {
+            if (!(vehicle instanceof RefrigeratedVan rv)) {
+                return false;
             }
-            RefrigeratedVan rv = (RefrigeratedVan) vehicle;
             if (rv.getMinTemperature() > pc.getRequiredTemperature()) {
-                return BIG_M;
+                return false;
             }
         }
-        // Calculate proportional cost per kg of vehicle capacity
-        double rawTripCost = (vehicle.getFuelConsumptionPer100km() / 100.0) * cargo.getDestinationDistance() * fuelPrice;
-        return rawTripCost / vehicle.getCapacityWeight();
+        
+        if (cargo instanceof HazardousCargo) {
+            if (!(vehicle instanceof FlatbedTruck)) {
+                return false;
+            }
+        }
+
+        if (cargo instanceof FragileCargo) {
+            if (!(vehicle instanceof AirRideTruck)) {
+                return false;
+            }
+        }
+        
+        if (cargo instanceof ValuableCargo) {
+            if (!(vehicle instanceof ArmoredTransport)) {
+                return false;
+            }
+        }
+        
+        if (cargo instanceof LiquidCargo) {
+            if (!(vehicle instanceof TankerTruck)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private double calculateTripCost(Vehicle vehicle, Cargo cargo, double fuelPrice) {
+        return (vehicle.getFuelConsumptionPer100km() / 100.0) * cargo.getDestinationDistance() * fuelPrice;
     }
 }

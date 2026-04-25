@@ -147,6 +147,14 @@ const Dashboard = () => {
                            <span className="text-light">Truck <small className="text-light opacity-50">(Max Axle: {v.maxAxleLoad}kg)</small></span>
                         ) : v.type === 'RefrigeratedVan' ? (
                            <span className="text-info">Ref. Van <small className="text-light opacity-50">(Min Temp: {v.minTemperature}°C)</small></span>
+                        ) : v.type === 'FlatbedTruck' ? (
+                           <span className="text-warning">Flatbed <small className="text-light opacity-50">(Exposed)</small></span>
+                        ) : v.type === 'ArmoredTransport' ? (
+                           <span className="text-danger fw-bold">Armored <small className="text-light fw-normal opacity-50">(T{v.securityLevel})</small></span>
+                        ) : v.type === 'TankerTruck' ? (
+                           <span className="text-primary">Tanker <small className="text-light opacity-50">({v.hasBaffles ? 'Baffled' : 'Unbaffled'})</small></span>
+                        ) : v.type === 'AirRideTruck' ? (
+                           <span className="text-info">AirRide <small className="text-light opacity-50">(-{v.shockAbsorptionRating}G)</small></span>
                         ) : 'Unknown'}
                       </td>
                       <td>{v.capacityWeight} kg</td>
@@ -184,9 +192,18 @@ const Dashboard = () => {
                     <tr key={c.id}>
                       <td className="fw-medium">#{c.id}</td>
                       <td>
-                        {c.type === 'StandardCargo' ? 'Standard' : (
+                        {c.type === 'StandardCargo' ? 'Standard' : 
+                         c.type === 'PerishableCargo' ? (
                           <span className="text-info">Perishable <small className="text-light opacity-50">(Max: {c.requiredTemperature}°C)</small></span>
-                        )}
+                        ) : c.type === 'HazardousCargo' ? (
+                          <span className="text-warning fw-bold">Hazmat <small className="text-light fw-normal opacity-50">({c.hazmatCode})</small></span>
+                        ) : c.type === 'FragileCargo' ? (
+                          <span className="text-danger">Fragile <small className="text-light opacity-50">(Max {c.maxGForce}G)</small></span>
+                        ) : c.type === 'LiquidCargo' ? (
+                          <span className="text-primary">Liquid <small className="text-light opacity-50">({c.viscosity} cSt)</small></span>
+                        ) : c.type === 'ValuableCargo' ? (
+                          <span className="text-success fw-bold">Valuable <small className="text-light fw-normal opacity-50">(${c.declaredValue})</small></span>
+                        ) : 'Unknown'}
                       </td>
                       <td>{c.weight} kg</td>
                       <td>{c.destinationDistance} km</td>

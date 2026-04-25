@@ -1,17 +1,14 @@
 package com.lrp.services;
 
-import com.lrp.models.Cargo;
 import com.lrp.models.Route;
 import com.lrp.models.StandardCargo;
 import com.lrp.models.Truck;
-import com.lrp.models.Vehicle;
 import com.lrp.repositories.CargoRepository;
 import com.lrp.repositories.RouteRepository;
 import com.lrp.repositories.VehicleRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 

@@ -186,3 +186,15 @@ input[type=number] {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+  .glass-card {
+    padding: 1.25rem;
+  }
+  .display-6 {
+    font-size: 2rem;
+  }
+}

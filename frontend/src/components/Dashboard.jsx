@@ -84,12 +84,12 @@ const Dashboard = () => {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-5">
-        <div>
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4 mb-5">
+        <div className="text-center text-lg-start">
           <h2 className="display-6 fw-bold mb-0 text-white">Logistics Dashboard</h2>
           <p className="mt-2 fs-5 text-light opacity-75 mb-1">Manage assignments utilizing the Simplex Transportation Engine.</p>
         </div>
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex flex-column flex-sm-row align-items-center justify-content-center justify-content-lg-end gap-3">
           <div className="glass-input-wrapper shadow-sm">
             <span className="text-info fw-bold opacity-75">$</span>
             <input 
